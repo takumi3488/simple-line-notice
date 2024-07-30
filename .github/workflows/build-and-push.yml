@@ -1,0 +1,76 @@
+name: Release
+
+permissions:
+  packages: write
+  contents: write
+  pull-requests: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+on:
+  push:
+    branches:
+      - release/*
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log into registry ${{ env.REGISTRY }}
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Extract Docker metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+    - name: Extract version from Cargo.toml
+      id: version
+      run: |
+        tag=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml)
+        echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Merge to develop
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh pr create -B develop -t "release: v${{ steps.version.outputs.tag }}" -b "Release ${{ steps.version.outputs.tag }}" && \
+        gh pr merge --merge
+
+    - name: Merge develop to main
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh pr create -B main -t "release: v${{ steps.version.outputs.tag }}" -b "Release ${{ steps.version.outputs.tag }}" -H develop && \
+        gh pr merge develop --merge
+
+    - name: Create a release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: v${{ steps.version.outputs.tag }}
+        tag_name: v${{ steps.version.outputs.tag }}
