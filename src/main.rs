@@ -1,12 +1,16 @@
 use std::{collections::HashMap, env};
 
-use axum::{response::IntoResponse, routing::post, Router};
+use axum::{response::IntoResponse, routing::get, Router};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let app = Router::new().route("/", post(handle_broadcast_message));
+    let app = Router::new().route("/", get(health_check).post(handle_broadcast_message));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn health_check() -> impl IntoResponse {
+    "OK"
 }
 
 async fn handle_broadcast_message(body: String) -> impl IntoResponse {
