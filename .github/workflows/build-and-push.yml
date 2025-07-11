@@ -11,8 +11,8 @@ env:
 
 on:
   push:
-    branches:
-      - release/*
+    tags:
+      - v*.*.*
 
 jobs:
   build-and-release:
@@ -54,23 +54,3 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-    - name: Merge to develop
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh pr create -B develop -t "release: v${{ steps.version.outputs.tag }}" -b "Release ${{ steps.version.outputs.tag }}" && \
-        gh pr merge --merge
-
-    - name: Merge develop to main
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh pr create -B main -t "release: v${{ steps.version.outputs.tag }}" -b "Release ${{ steps.version.outputs.tag }}" -H develop && \
-        gh pr merge develop --merge
-
-    - name: Create a release
-      uses: softprops/action-gh-release@v2
-      with:
-        name: v${{ steps.version.outputs.tag }}
-        tag_name: v${{ steps.version.outputs.tag }}
