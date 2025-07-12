@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env};
 
-use axum::{response::IntoResponse, routing::get, Router};
+use axum::{Router, response::IntoResponse, routing::get};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
