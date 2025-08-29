@@ -1,6 +1,7 @@
 use std::{collections::HashMap, env};
 
-use axum::{Router, response::IntoResponse, routing::get};
+use axum::{http::HeaderMap, response::IntoResponse, routing::get, Router};
+use serde::Deserialize;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -13,14 +14,31 @@ async fn health_check() -> impl IntoResponse {
     "OK"
 }
 
-async fn handle_broadcast_message(body: String) -> impl IntoResponse {
+#[derive(Deserialize)]
+struct JsonBody {
+    text: String,
+}
+
+async fn handle_broadcast_message(headers: HeaderMap, body: String) -> impl IntoResponse {
+    let message_text = if headers
+        .get("content-type")
+        .map_or(false, |v| v == "application/json")
+    {
+        match serde_json::from_str::<JsonBody>(&body) {
+            Ok(json) => json.text,
+            Err(_) => body,
+        }
+    } else {
+        body
+    };
+
     let token = env::var("LINE_TOKEN").expect("LINE_TOKEN is not set");
     println!("TOKEN: {}", token);
     let client = reqwest::Client::new();
     let mut map = HashMap::new();
     let mut message_map = HashMap::new();
     message_map.insert("type", "text");
-    message_map.insert("text", &body);
+    message_map.insert("text", &message_text);
     map.insert("messages", vec![message_map]);
     let res = client
         .post("https://api.line.me/v2/bot/message/broadcast")
