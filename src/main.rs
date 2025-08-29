@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env};
 
-use axum::{Router, http::HeaderMap, response::IntoResponse, routing::get};
+use axum::{Router, response::IntoResponse, routing::get};
 use serde::Deserialize;
 
 #[tokio::main(flavor = "current_thread")]
@@ -19,17 +19,10 @@ struct JsonBody {
     text: String,
 }
 
-async fn handle_broadcast_message(headers: HeaderMap, body: String) -> impl IntoResponse {
-    let message_text = if headers
-        .get("content-type")
-        .map_or(false, |v| v == "application/json")
-    {
-        match serde_json::from_str::<JsonBody>(&body) {
-            Ok(json) => json.text,
-            Err(_) => body,
-        }
-    } else {
-        body
+async fn handle_broadcast_message(body: String) -> impl IntoResponse {
+    let message_text = match serde_json::from_str::<JsonBody>(&body) {
+        Ok(json) => json.text,
+        Err(_) => body,
     };
 
     let token = env::var("LINE_TOKEN").expect("LINE_TOKEN is not set");
