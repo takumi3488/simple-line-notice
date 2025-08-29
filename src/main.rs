@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env};
 
-use axum::{http::HeaderMap, response::IntoResponse, routing::get, Router};
+use axum::{Router, http::HeaderMap, response::IntoResponse, routing::get};
 use serde::Deserialize;
 
 #[tokio::main(flavor = "current_thread")]
