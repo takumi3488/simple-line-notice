@@ -40,6 +40,7 @@ jobs:
   automerge:
     runs-on: ubuntu-latest
     needs: test
+    if: github.event.pull_request.user.id == 29139614 # dependabot
     permissions:
       contents: write
       pull-requests: write
@@ -48,4 +49,4 @@ jobs:
       uses: pascalgn/automerge-action@v0.16.4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        MERGE_LABELS: ""
+        MERGE_LABELS: "automerge"
