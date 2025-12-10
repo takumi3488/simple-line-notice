@@ -7,7 +7,7 @@ COPY . .
 RUN cargo build --release
 
 
-FROM gcr.io/distroless/cc-debian12@sha256:0000f9dc0290f8eaf0ecceafbc35e803649087ea7879570fbc78372df7ac649b
+FROM gcr.io/distroless/cc-debian12@sha256:0c8eac8ea42a167255d03c3ba6dfad2989c15427ed93d16c53ef9706ea4691df
 
 COPY --from=builder /usr/src/app/target/release/simple-line-notice /usr/local/bin/simple-line-notice
 
