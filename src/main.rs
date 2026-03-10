@@ -4,10 +4,11 @@ use axum::{Router, response::IntoResponse, routing::get};
 use serde::Deserialize;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new().route("/", get(health_check).post(handle_broadcast_message));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    axum::serve(listener, app).await?;
+    Ok(())
 }
 
 async fn health_check() -> impl IntoResponse {
@@ -43,8 +44,11 @@ async fn handle_broadcast_message(body: String) -> impl IntoResponse {
         Err(_) => body,
     };
 
-    let token = env::var("LINE_TOKEN").expect("LINE_TOKEN is not set");
-    println!("TOKEN: {}", token);
+    let Ok(token) = env::var("LINE_TOKEN") else {
+        eprintln!("LINE_TOKEN is not set");
+        return "Error";
+    };
+    println!("TOKEN: {token}");
 
     let service = NotificationService::from_env();
     let client = reqwest::Client::new();
@@ -60,7 +64,7 @@ async fn handle_broadcast_message(body: String) -> impl IntoResponse {
             client
                 .post("https://api.line.me/v2/bot/message/broadcast")
                 .header("Content-Type", "application/json")
-                .header("Authorization", format!("Bearer {}", token))
+                .header("Authorization", format!("Bearer {token}"))
                 .json(&map)
                 .send()
                 .await
@@ -71,7 +75,7 @@ async fn handle_broadcast_message(body: String) -> impl IntoResponse {
 
             client
                 .post("https://oshirase.app/api/notify")
-                .header("Authorization", format!("Bearer {}", token))
+                .header("Authorization", format!("Bearer {token}"))
                 .form(&params)
                 .send()
                 .await
@@ -83,12 +87,12 @@ async fn handle_broadcast_message(body: String) -> impl IntoResponse {
             if res.status().is_success() {
                 "Success"
             } else {
-                eprintln!("Error: {:?}", res);
+                eprintln!("Error: {res:?}");
                 "Error"
             }
         }
         Err(e) => {
-            eprintln!("Error: {:?}", e);
+            eprintln!("Error: {e:?}");
             "Error"
         }
     }
